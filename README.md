@@ -2,4 +2,4 @@
  
 ### Assignments
 
--[Assignment 1](Assignment1.html)
+-[Assignment 1](Assignment-1.html)
