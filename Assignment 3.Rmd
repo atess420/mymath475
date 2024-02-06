@@ -1,0 +1,73 @@
+---
+title: "Assignment 3"
+author: "Allison Tessman"
+date: "2024-02-06"
+output: html_document
+---
+
+# Plot Airline Passenger data and its additive decomposition
+
+```{r}
+data("AirPassengers")
+
+plot(AirPassengers)
+
+ourDecomposition <- decompose(AirPassengers, type="additive")
+
+plot(ourDecomposition)
+```
+
+# Change additive to multiplicative to plot the multiplicative decomposition
+
+```{r}
+data("AirPassengers")
+
+plot(AirPassengers)
+
+ourDecomposition <- decompose(AirPassengers, type="multiplicative")
+
+plot(ourDecomposition)
+```
+
+# Plot the Electric Production and its decomposition
+
+```{r}
+library(tidyverse)
+library(readr)
+library(TTR)
+df <- read_csv("https://bryantstats.github.io/math475/assignments/data/Electric_Production.csv")
+
+#Create time series with data
+t1 = ts(df$IPG2211A2N, start = 1985, frequency = 12)
+plot(t1, main = paste0("Electric Production"))
+
+#Additive decomposition
+ourDecomposition <- decompose(t1, type="additive")
+plot(ourDecomposition)
+
+#Multiplicative decomposition
+ourDecomposition <- decompose(t1, type="multiplicative")
+plot(ourDecomposition)
+```
+
+# Plot the Electric Production from 1985 to 1995 and its decomposition
+
+```{r}
+library(tidyverse)
+library(readr)
+library(TTR)
+df <- read_csv("https://bryantstats.github.io/math475/assignments/data/Electric_Production.csv")
+
+#Create time series with data from 1985-1995
+t2 = ts(df$IPG2211A2N, start = 1985, end = 1995, frequency = 12)
+plot(t2, main = paste0("Electric Production"))
+
+#Additive decomposition
+ourDecomposition <- decompose(t2, type="additive")
+plot(ourDecomposition)
+
+#Multiplicative decomposition
+ourDecomposition <- decompose(t2, type="multiplicative")
+plot(ourDecomposition)
+```
+

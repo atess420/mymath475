@@ -1,0 +1,98 @@
+---
+title: "Assignment 2"
+author: "Allison Tessman"
+date: "2024-02-01"
+output: html_document
+---
+
+## Question 3. In this question, we will use R to plot a time series, create an MA series and plot the MA series.
+
+```{r}
+library(TTR)
+
+# read data
+d <- read.csv('https://bryantstats.github.io/math475/data/MedCPISmooth.csv')
+
+# frequency = 4 for quarterly data, 
+# frequency = 12 for monthly data, 
+# frequency = 1 for yearly data, by default frequency = 1
+
+t1 = ts(d$PerMEDCPI, start = 1947, frequency = 4)
+
+# plot the time series
+plot(t1, main = paste0("Medical Component of the CPI"))
+
+# In exponential smoothing, a higher ratio will weight more on the recent observation, 
+# ratio close to 1 will have a 100% weight on the most recent observation
+w = .1
+
+t1_ema = EMA(t1, ratio = 1-w)
+
+plot(t1,  main = paste0("Exponential Smoothing with w = ", w))
+lines(t1_ema, col = "red")
+```
+
+Increasing w from w=0.1 to w=0.5
+
+```{r}
+library(TTR)
+
+# read data
+d <- read.csv('https://bryantstats.github.io/math475/data/MedCPISmooth.csv')
+
+# frequency = 4 for quarterly data, 
+# frequency = 12 for monthly data, 
+# frequency = 1 for yearly data, by default frequency = 1
+
+t1 = ts(d$PerMEDCPI, start = 1947, frequency = 4)
+
+# plot the time series
+plot(t1, main = paste0("Medical Component of the CPI"))
+
+# In exponential smoothing, a higher ratio will weight more on the recent observation, 
+# ratio close to 1 will have a 100% weight on the most recent observation
+w = .5
+
+t1_ema = EMA(t1, ratio = 1-w)
+
+plot(t1,  main = paste0("Exponential Smoothing with w = ", w))
+lines(t1_ema, col = "red")
+```
+
+
+## Question 4. In this assignment we will study the dataset about the economy of Algeria.
+
+- Plot the time series of Algeria’s Exports
+- Plot an exponential smoothing series for the above time series. What is your choice for w?
+
+```{r}
+library(TTR)
+
+# read data
+d <- read.csv('https://bryantstats.github.io/math475/assignments/data/algeria_economy.csv')
+
+# frequency = 4 for quarterly data, 
+# frequency = 12 for monthly data, 
+# frequency = 1 for yearly data, by default frequency = 1
+
+t1 = ts(d$Exports, start = 1960, frequency = 4)
+
+# plot the time series
+plot(t1, main = paste0("Algeria's Exports"))
+
+
+# In exponential smoothing, a higher ratio will weight more on the recent observation, 
+# ratio close to 1 will have a 100% weight on the most recent observation
+w = .8
+
+t1_ema = EMA(t1, ratio = 1-w)
+
+plot(t1,  main = paste0("Exponential Smoothing with w = ", w))
+lines(t1_ema, col = "red")
+```
+# My choice for w is w=0.8
+
+
+
+
+
