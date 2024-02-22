@@ -1,0 +1,108 @@
+---
+title: "Assignment 4"
+author: "Allison Tessman"
+date: "2024-02-15"
+output:
+  pdf_document: default
+  html_document: default
+---
+
+# Plot the Airline Passenger data and its STL decomposition
+
+```{r}
+data("AirPassengers")
+plot(AirPassengers)
+
+ourDecomposition <- stl(AirPassengers, s.window = "periodic")
+plot(ourDecomposition)
+```
+
+# Plot the Electric Production and its stl decomposition
+
+```{r}
+# read data
+d <- read.csv('https://bryantstats.github.io/math475/assignments/data/Electric_Production.csv')
+
+# frequency = 4 for quarterly data, 
+# frequency = 12 for monthly data, 
+# frequency = 1 for yearly data, by default frequency = 1
+
+t1 = ts(d$IPG2211A2N, start = 1985, frequency = 12)
+
+# plot the time series
+plot(t1, main = paste0("Electric Production"))
+
+#stl decomposition
+ourDecomposition2 <- stl(t1, s.window = "periodic")
+plot(ourDecomposition2)
+```
+
+# Plot the Electric Production from 1985 to 1995 and its stl decomposition
+
+```{r}
+# read data
+d <- read.csv('https://bryantstats.github.io/math475/assignments/data/Electric_Production.csv')
+
+# frequency = 4 for quarterly data, 
+# frequency = 12 for monthly data, 
+# frequency = 1 for yearly data, by default frequency = 1
+
+t1 = ts(d$IPG2211A2N, start = 1985, end = 1995, frequency = 12)
+
+# plot the time series
+plot(t1, main = paste0("Electric Production from 1985 to 1995"))
+
+#stl decomposition
+ourDecomposition3 <- stl(t1, s.window = "periodic")
+plot(ourDecomposition3)
+```
+
+# Plot the US Retail Employment and its STL decomposition
+
+```{r}
+# read data
+d <- read.csv('https://bryantstats.github.io/math475/assignments/data/us_retail_employment.csv')
+
+# frequency = 4 for quarterly data, 
+# frequency = 12 for monthly data, 
+# frequency = 1 for yearly data, by default frequency = 1
+
+t1 = ts(d$Employed, start = 1990, frequency = 4)
+
+# plot the time series
+plot(t1, main = paste0("US Retail Employment"))
+
+#stl decomposition
+ourDecomposition4 <- stl(t1, s.window = "periodic")
+plot(ourDecomposition4)
+```
+
+# Find your own time series that has a seasonal component and plot the classical decomposition (as in Assignment 3) and the STL decomposition.
+
+```{r}
+d <- read.csv("~/Applied Analystics SAS Prog/mymath475/daily_csv.csv")
+
+library(zoo)
+d$month <- as.yearmon(d$Date)
+
+d <- d[-c(1)]
+d$Date <- d$month
+d <- d[-c(2)]
+
+#Create time series with data
+t1 = ts(d$Date, start = 2000, end = 2010, frequency = 12)
+plot(t1, main = paste0("Natural Gas Prices"))
+
+#Additive decomposition
+ourDecomposition <- decompose(t1, type="additive")
+plot(ourDecomposition)
+
+#Multiplicative decomposition
+ourDecomposition <- decompose(t1, type="multiplicative")
+plot(ourDecomposition)
+
+#STL decomposition
+ourDecomposition <- stl(t1, s.window = "periodic")
+plot(ourDecomposition)
+```
+

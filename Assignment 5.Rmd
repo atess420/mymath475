@@ -1,0 +1,176 @@
+---
+title: "Assignment 5"
+author: "Allison Tessman"
+date: "2024-02-22"
+output:
+  html_document: default
+  pdf_document: default
+---
+
+1. Run the codes in the slides to reproduce the results.
+
+# *Rainfall data: Constant level (no trend) and no seasonality*
+
+```{r}
+rainfall <- read.csv("https://bryantstats.github.io/math475/slides/rainfall_london.csv")
+
+# install.packages("forecast")
+library(forecast)
+
+#forecasting with single exponential smoothing
+ts1 <- ts(rainfall,start=c(1813))
+plot(ts1)
+
+#making forecast
+ts1_forecast <- HoltWinters(ts1, alpha=TRUE, 
+                            beta=FALSE, 
+                            gamma=FALSE)
+ts1_forecast
+plot(ts1_forecast)
+
+#forecasting
+ts1_forecast2 <- forecast(ts1_forecast, h=8)
+ts1_forecast2
+plot(ts1_forecast2)
+
+```
+
+# *Skirts data: Increasing or decreasing trend and no seasonality*
+
+```{r}
+skirts <- read.csv("https://bryantstats.github.io/math475/slides/skirts.csv")
+
+#forecasting with single exponential smoothing
+ts2 <- ts(skirts,start=c(1866))
+plot(ts2)
+
+#making forecast
+ts2_forecast <- HoltWinters(ts2, alpha=TRUE, 
+                            beta=TRUE, 
+                            gamma=FALSE)
+ts2_forecast
+plot(ts2_forecast)
+
+#forecasting
+ts2_forecast2 <- forecast(ts2_forecast, h=19)
+plot(ts2_forecast2)
+
+```
+
+# *Souvenir data: Increasing or decreasing trend and seasonality*
+
+```{r}
+souvenir <- read.csv("https://bryantstats.github.io/math475/slides/souvenir.csv")
+
+#forecasting with single exponential smoothing
+ts3 <- ts(souvenir, frequency=12, start=c(1987,1))
+plot(ts3)
+
+#making forecast
+ts3_forecasts <- HoltWinters(ts3, alpha=TRUE, 
+                            beta=TRUE, 
+                            gamma=TRUE)
+plot(ts3_forecasts)
+
+#forecasting
+ts3_forecasts2 <- forecast(ts3_forecasts, h=48)
+plot(ts3_forecasts2)
+
+#log(ts3) example
+ts3 <- ts(souvenir, frequency=12, start=c(1987,1))
+logts3 <- log(ts3)
+
+ts3_forecasts <- HoltWinters(logts3)
+plot(ts3_forecasts)
+
+ts3_forecasts2 <- forecast(ts3_forecasts, h=48)
+plot(ts3_forecasts2)
+
+```
+
+2. Find three examples of the below time series and make forecast using Exponential Smoothing
+
+- Time series with no trend and no seasonality:
+
+```{r}
+library(readxl)
+rainfall_brazil <- read_excel("~/Applied Analystics SAS Prog/Assignments/Assignment 5/rainfall_london.xlsx", 
+    sheet = "new_rainfall")
+
+# install.packages("forecast")
+library(forecast)
+
+#forecasting with single exponential smoothing
+ts1 <- ts(rainfall_brazil,start=c(1813))
+plot(ts1)
+
+#making forecast
+ts1_forecast <- HoltWinters(ts1, alpha=TRUE, 
+                            beta=FALSE, 
+                            gamma=FALSE)
+ts1_forecast
+plot(ts1_forecast)
+
+#forecasting
+ts1_forecast2 <- forecast(ts1_forecast, h=8)
+ts1_forecast2
+plot(ts1_forecast2)
+
+```
+
+- Time series with trend and no seasonality:
+
+```{r}
+shorts <- read_excel("~/Applied Analystics SAS Prog/Assignments/Assignment 5/skirts.xlsx", 
+    sheet = "new_shorts")
+
+#forecasting with single exponential smoothing
+ts2 <- ts(shorts,start=c(1866))
+plot(ts2)
+
+#making forecast
+ts2_forecast <- HoltWinters(ts2, alpha=TRUE, 
+                            beta=TRUE, 
+                            gamma=FALSE)
+ts2_forecast
+plot(ts2_forecast)
+
+#forecasting
+ts2_forecast2 <- forecast(ts2_forecast, h=19)
+plot(ts2_forecast2)
+
+```
+
+- Time series with trend and seasonality:
+
+```{r}
+tickets <- read_excel("~/Applied Analystics SAS Prog/Assignments/Assignment 5/souvenir.xlsx", 
+    sheet = "tickets")
+
+#forecasting with single exponential smoothing
+ts3 <- ts(tickets, frequency=12, start=c(1992,1))
+plot(ts3)
+
+#making forecast
+ts3_forecasts <- HoltWinters(ts3, alpha=TRUE, 
+                            beta=TRUE, 
+                            gamma=TRUE)
+plot(ts3_forecasts)
+
+#forecasting
+ts3_forecasts2 <- forecast(ts3_forecasts, h=48)
+plot(ts3_forecasts2)
+
+#log(ts3) example
+ts3 <- ts(souvenir, frequency=12, start=c(1992,1))
+logts3 <- log(ts3)
+
+ts3_forecasts <- HoltWinters(logts3)
+plot(ts3_forecasts)
+
+ts3_forecasts2 <- forecast(ts3_forecasts, h=48)
+plot(ts3_forecasts2)
+
+
+```
+
