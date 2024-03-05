@@ -1,0 +1,86 @@
+---
+title: "Assignment 7"
+author: "Allison Tessman"
+date: "2024-02-29"
+output:
+  pdf_document: default
+  html_document: default
+---
+
+1. Simulate an AR(1) series with positive slope using the arima.sim function. Plot the ACF of the series. Comment on the ACF.
+
+- The ACF exponentially decreases to 0 as the lag increases
+
+```{r}
+yt <- arima.sim(list(order=c(1,0,0), ar=c(.9)), n=1000)
+b0 = 10
+yt <- yt + b0
+acf(yt)
+```
+
+2. Simulate an AR(1) series with negative slope using the arima.sim function. Plot the ACF of the series. Comment on the ACF.
+
+- The ACF exponentially decays to 0 as the lag increases, but the algebraic signs for the autocorrelations alternate between positive and negative
+
+```{r}
+yt <- arima.sim(list(order=c(1,0,0), ar=c(-.9)), n=1000)
+b0 = 10
+yt <- yt + b0
+acf(yt)
+```
+
+3. Simulate an AR(1) series. Use the arima function to estimate the coefficients of the series. Increase the length of the series to see if that improves the accuracy of the estimation.
+
+```{r}
+#estimate the coefficients of the series
+yt <- arima.sim(list(order=c(1,0,0), ar=c(.7)), n=1000)
+b0 = 10
+yt <- yt + b0
+plot(yt)
+
+arima(yt, order = c(1,0,0))
+
+#increase the length of the series
+yt <- arima.sim(list(order=c(1,0,0), ar=c(.9)), n=1000)
+b0 = 10
+yt <- yt + b0
+plot(yt)
+
+arima(yt, order = c(1,0,0))
+#did not improve accuracy
+```
+
+4. Simulate an AR(1) series. Plot the ACF of the residual. Does the ACF of the residual look like that of white noise? Plot the series and the estimated series in the same plot with the forecasting of 10 points to the future.
+
+- Yes, the ACF of the residual looks like that of white noise
+
+```{r}
+library(ggfortify)
+library(forecast)
+
+# create an AR(1) series
+yt <- arima.sim(list(order=c(1,0,0), ar=c(.2)), n=100)
+b0 = 10
+yt <- yt + b0
+plot(yt)
+
+# estimate the series using AR(1) model
+yt_ar  = arima(yt, order = c(1,0,0))
+
+# plot the estimated series and the original series
+yt_predicted <- yt - yt_ar$residuals
+plot(yt)
+points(yt_predicted, type = "l", 
+       col = "red", lty = 2)
+
+#histogram of residuals
+hist(yt_ar$residuals)
+
+#acf of residuals
+acf(yt_ar$residuals)
+
+#forecasting withAR(1)
+ts3_forecasts2 <- forecast(yt_ar, h=5)
+plot(ts3_forecasts2)
+```
+
