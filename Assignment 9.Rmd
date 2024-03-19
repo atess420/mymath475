@@ -1,0 +1,138 @@
+---
+title: "Assignment 9"
+author: "Allison Tessman"
+date: "2024-03-07"
+output:
+  pdf_document: default
+  html_document: default
+---
+
+# Question 1 
+
+Working with the inflation data, to do the follows:
+
+- Create a time series of three-month inflation rate
+
+```{r}
+library(forecast)
+
+# import the data
+df = read.csv("https://bryantstats.github.io/math475/assignments/inflation.csv")
+
+# define the series
+yt = ts(df$pai3, frequency = 12, start = c(1950, 2))
+
+```
+
+- Plot the series and the ACF to check if the series is stationary
+
+```{r}
+# check for stationary
+par(mfrow = c(1, 2))
+plot(yt)
+acf(yt)
+```
+
+- Create the differenced series and check for stationary
+
+```{r}
+# create the differenced series for stationary
+y_diff = diff(yt)
+
+# check for stationary
+par(mfrow = c(1, 2))
+plot(y_diff)
+acf(y_diff)
+```
+
+- Fit the MA(1) model to the series and plot the fitted series
+
+```{r}
+# fit the MA(1) model to the differenced series
+y_ma = arima(y_diff, order = c(0,0,1))
+
+# plot the fitted series
+plot(yt)
+lines(yt-y_ma$residuals, col = "red")
+```
+
+- Make prediction on the next value of three-month inflation rate
+
+```{r}
+# make predictions
+d_n = forecast(y_ma, h = 1)
+y_next = d_n$mean + yt[length(yt)]
+y_next = as.numeric(y_next)
+y_next
+```
+
+- Fit the AR(1) model to the series and plot the fitted series
+
+```{r}
+y_ar = arima(y_diff, order = c(1,0,0))
+
+plot(yt)
+lines(yt-y_ar$residuals, col = "blue")
+```
+
+- Make prediction on the next value of three-month inflation rate
+
+```{r}
+# make predictions
+d_n = forecast(y_ar, h = 1)
+y_next = d_n$mean + yt[length(yt)]
+y_next = as.numeric(y_next)
+y_next
+```
+
+# Question 2
+
+Consider the Consumption data. This is a quarterly data on consumption and expenditure in Canada. The series started from Quarter 1 in 1947.
+
+The time series containing :
+
+- yd: personal disposable income, 1986 dollars
+
+- ce: personal consumption expenditure, 1986 dollars
+
+Let Yt be the personal consumption expenditure series. Assume that the differenced series of Yt is stationary.
+
+- Use the MA(1) model to fit the differenced series and make a prediction on the next value of Yt
+
+- Plot the fitted Yt and the Yt on the same graph.
+
+```{r}
+# import the data
+df = read.csv("https://bryantstats.github.io/math475/assignments/consumption.csv")
+
+# define the series
+yt = ts(df$ce, frequency = 4, start = c(1947, 1))
+
+# check for stationary
+par(mfrow = c(1, 2))
+plot(yt)
+acf(yt)
+
+# create the differenced series for stationary
+y_diff = diff(yt)
+
+# check for stationary
+par(mfrow = c(1, 2))
+plot(y_diff)
+acf(y_diff)
+
+# fit the MA(1) model to the differenced series
+y_ma = arima(y_diff, order = c(0,0,1))
+
+# plot the fitted series
+plot(yt)
+lines(yt-y_ma$residuals, col = "red")
+
+# make predictions
+d_n = forecast(y_ma, h = 1)
+y_next = d_n$mean + yt[length(yt)]
+y_next = as.numeric(y_next)
+y_next
+
+```
+
