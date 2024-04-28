@@ -1,0 +1,247 @@
+---
+title: "Assignment 17"
+author: "Allison Tessman"
+date: "2024-04-25"
+output:
+  word_document: default
+  html_document: default
+---
+
+Question 1. In this question, we will work with the Data Analyst Jobs dataset
+
+- Use the following code to create binary variable on rating, called Rating2
+
+- Train and test a model to predict whether the rating of the job is high or low (target variable is Rating2) based on the job descriptions.
+
+```{r}
+library(tidyverse)
+
+df = read_csv('https://bryantstats.github.io/math475/assignments/DataAnalyst3.csv')
+
+# calculate the median rating
+m = median(df$Rating)
+
+# Create a binary rating variable
+df$Rating2 = if_else(df$Rating > m, "high", "low")
+
+#Convert text variables to numeric
+library(caret)
+library(themis)
+library(textrecipes)
+library(tidyverse)
+library(ranger)
+
+df <- df %>% 
+  select(Rating2, Job.Description) %>% 
+  rename(target = Rating2,
+         texts = Job.Description) %>% 
+  drop_na()
+
+a <- recipe(target ~.,
+       data = df) %>% 
+  step_tokenize(texts) %>% 
+  step_tokenfilter(texts, max_tokens = 100) %>% 
+  step_tfidf(texts) %>% 
+  step_normalize(all_numeric_predictors()) %>% 
+  step_dummy(all_nominal_predictors()) %>% 
+  step_smote(target) %>% 
+  prep()
+df <- juice(a)
+df
+
+# Using Caret for modeling
+set.seed(2021)
+splitIndex <- createDataPartition(df$target, p = .7, 
+                                  list = FALSE)
+df_train <- df[ splitIndex,]
+df_test <- df[-splitIndex,]
+
+model <- ranger(target ~ ., data = df_train)
+
+# Testing the model
+pred <- predict(model, df_test)$predictions
+
+cm <- confusionMatrix(data = pred, reference = df_test$target)
+cm$overall[1]
+#Accuracy = 0.6393678
+
+d = data.frame(pred = pred, obs = df_test$target)
+library(yardstick)
+d %>% conf_mat(pred, obs) %>% autoplot
+```
+
+- Adding more predictors to the model to improve the testing accuracy of the model
+
+```{r}
+library(tidyverse)
+
+df = read_csv('https://bryantstats.github.io/math475/assignments/DataAnalyst3.csv')
+
+# calculate the median rating
+m = median(df$Rating)
+
+# Create a binary rating variable
+df$Rating2 = if_else(df$Rating > m, "high", "low")
+
+#Convert text variables to numeric
+library(caret)
+library(themis)
+library(textrecipes)
+library(tidyverse)
+library(ranger)
+
+df <- df %>% 
+  select(Rating2, Job.Description, Location, Industry) %>% 
+  rename(target = Rating2,
+         texts = Job.Description) %>% 
+  drop_na()
+
+# Convert text data to numeric variables
+a <- recipe(target ~.,
+       data = df) %>% 
+  step_tokenize(texts) %>% 
+  step_tokenfilter(texts, max_tokens = 100) %>% 
+  step_tfidf(texts) %>% 
+  step_normalize(all_numeric_predictors()) %>% 
+  step_dummy(all_nominal_predictors()) %>% 
+  step_smote(target) %>% 
+  prep()
+df <- juice(a)
+
+set.seed(2021)
+splitIndex <- createDataPartition(df$target, p = .7, 
+                                  list = FALSE)
+df_train <- df[ splitIndex,]
+df_test <- df[-splitIndex,]
+
+model <- ranger(target ~ ., data = df_train)
+
+pred <- predict(model, df_test)$predictions
+
+cm <- confusionMatrix(data = pred, reference = df_test$target)
+cm$overall[1]
+#Accuracy = 0.6465517
+#Accuracy got worse by adding more variables 
+
+d = data.frame(pred = pred, obs = df_test$target)
+library(yardstick)
+d %>% conf_mat(pred, obs) %>% autoplot
+```
+
+Note: The accuracy got worse when more variables were added in (location and industry)
+
+
+Question 2. Redo Question 1 on your own data (you can decide the target for your model)
+
+```{r}
+library(tidyverse)
+
+df = read_csv('https://bryantstats.github.io/math475/assignments/amazon_reviews.csv')
+
+# Create a binary rating variable
+df$Rating2 = if_else(df$reviews.rating > 3, "high", "low")
+
+#Convert text variables to numeric
+library(caret)
+library(themis)
+library(textrecipes)
+library(tidyverse)
+library(ranger)
+
+df <- df %>% 
+  select(Rating2, reviews.text) %>% 
+  rename(target = Rating2,
+         texts = reviews.text) %>% 
+  drop_na()
+
+a <- recipe(target ~.,
+       data = df) %>% 
+  step_tokenize(texts) %>% 
+  step_tokenfilter(texts, max_tokens = 30) %>% 
+  step_tfidf(texts) %>% 
+  step_normalize(all_numeric_predictors()) %>% 
+  step_dummy(all_nominal_predictors()) %>% 
+  step_smote(target) %>% 
+  prep()
+df <- juice(a)
+df
+
+# Using Caret for modeling
+set.seed(2021)
+splitIndex <- createDataPartition(df$target, p = .7, 
+                                  list = FALSE)
+df_train <- df[ splitIndex,]
+df_test <- df[-splitIndex,]
+
+model <- ranger(target ~ ., data = df_train)
+
+# Testing the model
+pred <- predict(model, df_test)$predictions
+
+cm <- confusionMatrix(data = pred, reference = df_test$target)
+cm$overall[1]
+#Accuracy = 0.6393678
+
+d = data.frame(pred = pred, obs = df_test$target)
+library(yardstick)
+d %>% conf_mat(pred, obs) %>% autoplot
+```
+
+- Adding more predictors to the model to improve the testing accuracy of the model
+
+```{r}
+library(tidyverse)
+
+df = read_csv('https://bryantstats.github.io/math475/assignments/amazon_reviews.csv')
+
+# Create a binary rating variable
+df$Rating2 = if_else(df$reviews.rating > 3, "high", "low")
+
+df <- df[1:5000,]
+
+#Convert text variables to numeric
+library(caret)
+library(themis)
+library(textrecipes)
+library(tidyverse)
+library(ranger)
+
+df <- df %>% 
+  select(Rating2, reviews.text, reviews.title) %>% 
+  rename(target = Rating2,
+         texts = reviews.text) %>% 
+  drop_na()
+
+# Convert text data to numeric variables
+a <- recipe(target ~.,
+       data = df) %>% 
+  step_tokenize(texts) %>% 
+  step_tokenfilter(texts, max_tokens = 30) %>% 
+  step_tfidf(texts) %>% 
+  step_normalize(all_numeric_predictors()) %>% 
+  step_dummy(all_nominal_predictors()) %>% 
+  step_smote(target) %>% 
+  prep()
+df <- juice(a)
+
+set.seed(2021)
+splitIndex <- createDataPartition(df$target, p = .7, 
+                                  list = FALSE)
+df_train <- df[ splitIndex,]
+df_test <- df[-splitIndex,]
+
+model <- ranger(target ~ ., data = df_train)
+
+pred <- predict(model, df_test)$predictions
+
+cm <- confusionMatrix(data = pred, reference = df_test$target)
+cm$overall[1]
+#Accuracy = 0.6465517
+#Accuracy got worse by adding more variables 
+
+d = data.frame(pred = pred, obs = df_test$target)
+library(yardstick)
+d %>% conf_mat(pred, obs) %>% autoplot
+```
+
+*NOTE: For the last chunk of code, I had issues with not even enough memory to do the full dataset with adding in more variables, so I took a subset of the data to get it to run!*

@@ -1,0 +1,385 @@
+---
+title: "Assignment 16"
+author: "Allison Tessman"
+date: "2024-04-18"
+output:
+  word_document: default
+  html_document: default
+---
+
+## Question.
+
+1. Create a text data set about two different topics and:
+
+- has a document column taking values from 1 to 5.
+
+- has a texts column containing text data that has the topics belonging to one of the two chosen topic.
+
+- has a source column citing the source of the text data.
+
+```{r, warning=FALSE}
+library(tidyverse)
+library(tidytext)
+library(tm)
+library(wordcloud)
+
+#1. https://www.ncaa.com/news/softball/article/2024-02-05/6-storylines-note-ahead-2024-college-softball-season
+#2. https://www.flosoftball.com/articles/5043839-what-its-like-being-a-college-softball-player
+#3. #https://www.wbur.org/news/2024/04/15/boston-marathon-128th-race-runners-spectators-live-updates
+#4. https://theathletic.com/5417718/2024/04/15/boston-marathon-hellen-obiri-sisay-lemma/
+#5. https://d1softball.com/inside-the-numbers-on-secs-toughest-out-ace-up-dukes-sleeve-and-pitching-roads-to-okc/
+
+df <- read_csv("~/Applied Analystics SAS Prog/mymath475/assign16topics.csv")
+
+```
+
+
+State your topics.
+- Topic 1: College Softball
+- Topic 2: Boston Marathon
+
+2. Perform text model on the dataset using LDA with the number of topics being 2.
+
+- Plot the bar charts showing the terms with the highest probabilities for each topic
+
+- Plot the word cloud of the terms for each topic.
+
+- Does the bar charts and the word clouds identify the two chosen topics?
+
+- Plot the distribution of topics for each document. Does the plot correctly identify the topic for each document?
+
+```{r, warning=FALSE}
+#Create doc- term matrix (DTM)
+# create the DTM
+df_tm <- df %>% 
+  unnest_tokens(output = word, input = texts) %>% 
+  anti_join(get_stopwords()) %>% 
+  anti_join(tibble(word = c(letters, LETTERS, "oh", 'just', 've', as.character(c(1:100)))))
+
+word_freq <- df_tm %>% 
+  group_by(document) %>% count(word, sort = TRUE)
+
+df_dtm <- word_freq %>% 
+  cast_dtm(document = document, term = word, n)
+
+tm::inspect(df_dtm)
+
+#Topic Modeling
+library(topicmodels)
+
+# Perform Topic Modeling
+
+n_topics = 2  # set the number of topics
+
+lda_out <-
+  LDA(df_dtm, k = n_topics, method = 'Gibbs', 
+      control = list(seed = 1111))
+
+#Present results
+lda_topics <- lda_out %>%
+  tidy(matrix = "beta") 
+
+word_probs <- lda_topics %>%
+  group_by(topic) %>%
+  slice_max(order_by = beta, n = 10) %>%
+  ungroup() %>%
+  mutate(term = fct_reorder(term, beta))
+
+# bar chart
+word_probs %>% 
+  ggplot(aes(beta, term, fill = topic)) +
+  geom_col(show.legend = FALSE) +
+  facet_wrap(~ as.factor(topic), scales = "free") +
+  labs(x = "Probability",
+       y = NULL)+
+  scale_y_reordered() 
+
+# word cloud
+ library(wordcloud) 
+pal <- brewer.pal(8,"Dark2")
+
+for (i in c(1:n_topics))
+{
+  topic <- lda_topics %>%
+  group_by(topic) %>% 
+  filter(topic==i)
+
+topic %>%
+  with(wordcloud(term, beta, random.order = FALSE, 
+                 max.words = 50, colors=pal))
+}
+
+# topic distribution for each documents
+lda_documents = lda_out %>%
+  tidy(matrix = "gamma") 
+
+lda_documents %>% 
+  ggplot() +
+  geom_col(aes(x = document, y = gamma, fill = factor(topic)))+
+  labs(fill = 'Topics')
+```
+
+
+3. Adding more rows and topics to the dataset and comment on the performance of LDA.
+
+```{r, warning=FALSE}
+library(tidyverse)
+library(tidytext)
+library(tm)
+library(wordcloud)
+
+#1. https://www.ncaa.com/news/softball/article/2024-02-05/6-storylines-note-ahead-2024-college-softball-season
+#2. https://www.flosoftball.com/articles/5043839-what-its-like-being-a-college-softball-player
+#3. #https://www.wbur.org/news/2024/04/15/boston-marathon-128th-race-runners-spectators-live-updates
+#4. https://theathletic.com/5417718/2024/04/15/boston-marathon-hellen-obiri-sisay-lemma/
+#5. https://d1softball.com/inside-the-numbers-on-secs-toughest-out-ace-up-dukes-sleeve-and-pitching-roads-to-okc/
+#6. https://www.nytimes.com/2022/05/12/well/dog-behavior.html
+#7. https://www.medicalnewstoday.com/articles/322868
+#8. https://www.nationalgeographic.com/animals/article/150720-dogs-animals-science-pets-evolution-intelligence
+
+
+df <- read_csv("~/Applied Analystics SAS Prog/mymath475/assign16topics2.csv")
+
+#Create doc- term matrix (DTM)
+# create the DTM
+df_tm <- df %>% 
+  unnest_tokens(output = word, input = texts) %>% 
+  anti_join(get_stopwords()) %>% 
+  anti_join(tibble(word = c(letters, LETTERS, "oh", 'just', 've', as.character(c(1:100)))))
+
+word_freq <- df_tm %>% 
+  group_by(document) %>% count(word, sort = TRUE)
+
+df_dtm <- word_freq %>% 
+  cast_dtm(document = document, term = word, n)
+
+tm::inspect(df_dtm)
+
+#Topic Modeling
+library(topicmodels)
+
+# Perform Topic Modeling
+
+n_topics = 2  # set the number of topics
+
+lda_out <-
+  LDA(df_dtm, k = n_topics, method = 'Gibbs', 
+      control = list(seed = 1111))
+
+#Present results
+lda_topics <- lda_out %>%
+  tidy(matrix = "beta") 
+
+word_probs <- lda_topics %>%
+  group_by(topic) %>%
+  slice_max(order_by = beta, n = 10) %>%
+  ungroup() %>%
+  mutate(term = fct_reorder(term, beta))
+
+# bar chart
+word_probs %>% 
+  ggplot(aes(beta, term, fill = topic)) +
+  geom_col(show.legend = FALSE) +
+  facet_wrap(~ as.factor(topic), scales = "free") +
+  labs(x = "Probability",
+       y = NULL)+
+  scale_y_reordered() 
+
+# word cloud
+ library(wordcloud) 
+pal <- brewer.pal(8,"Dark2")
+
+for (i in c(1:n_topics))
+{
+  topic <- lda_topics %>%
+  group_by(topic) %>% 
+  filter(topic==i)
+
+topic %>%
+  with(wordcloud(term, beta, random.order = FALSE, 
+                 max.words = 50, colors=pal))
+}
+
+# topic distribution for each documents
+lda_documents = lda_out %>%
+  tidy(matrix = "gamma") 
+
+lda_documents %>% 
+  ggplot() +
+  geom_col(aes(x = document, y = gamma, fill = factor(topic)))+
+  labs(fill = 'Topics')
+```
+
+
+4. Changing the number of topics from 2 to 3 and comment on the performance of LDA.
+
+```{r, warning=FALSE}
+library(tidyverse)
+library(tidytext)
+library(tm)
+library(wordcloud)
+
+#1. https://www.ncaa.com/news/softball/article/2024-02-05/6-storylines-note-ahead-2024-college-softball-season
+#2. https://www.flosoftball.com/articles/5043839-what-its-like-being-a-college-softball-player
+#3. #https://www.wbur.org/news/2024/04/15/boston-marathon-128th-race-runners-spectators-live-updates
+#4. https://theathletic.com/5417718/2024/04/15/boston-marathon-hellen-obiri-sisay-lemma/
+#5. https://d1softball.com/inside-the-numbers-on-secs-toughest-out-ace-up-dukes-sleeve-and-pitching-roads-to-okc/
+#6. https://www.nytimes.com/2022/05/12/well/dog-behavior.html
+#7. https://www.medicalnewstoday.com/articles/322868
+#8. https://www.nationalgeographic.com/animals/article/150720-dogs-animals-science-pets-evolution-intelligence
+
+
+df <- read_csv("~/Applied Analystics SAS Prog/mymath475/assign16topics2.csv")
+
+#Create doc- term matrix (DTM)
+# create the DTM
+df_tm <- df %>% 
+  unnest_tokens(output = word, input = texts) %>% 
+  anti_join(get_stopwords()) %>% 
+  anti_join(tibble(word = c(letters, LETTERS, "oh", 'just', 've', as.character(c(1:100)))))
+
+word_freq <- df_tm %>% 
+  group_by(document) %>% count(word, sort = TRUE)
+
+df_dtm <- word_freq %>% 
+  cast_dtm(document = document, term = word, n)
+
+tm::inspect(df_dtm)
+
+#Topic Modeling
+library(topicmodels)
+
+# Perform Topic Modeling
+
+n_topics = 3  # set the number of topics
+
+lda_out <-
+  LDA(df_dtm, k = n_topics, method = 'Gibbs', 
+      control = list(seed = 1111))
+
+#Present results
+lda_topics <- lda_out %>%
+  tidy(matrix = "beta") 
+
+word_probs <- lda_topics %>%
+  group_by(topic) %>%
+  slice_max(order_by = beta, n = 10) %>%
+  ungroup() %>%
+  mutate(term = fct_reorder(term, beta))
+
+# bar chart
+word_probs %>% 
+  ggplot(aes(beta, term, fill = topic)) +
+  geom_col(show.legend = FALSE) +
+  facet_wrap(~ as.factor(topic), scales = "free") +
+  labs(x = "Probability",
+       y = NULL)+
+  scale_y_reordered() 
+
+# word cloud
+ library(wordcloud) 
+pal <- brewer.pal(8,"Dark2")
+
+for (i in c(1:n_topics))
+{
+  topic <- lda_topics %>%
+  group_by(topic) %>% 
+  filter(topic==i)
+
+topic %>%
+  with(wordcloud(term, beta, random.order = FALSE, 
+                 max.words = 50, colors=pal))
+}
+
+# topic distribution for each documents
+lda_documents = lda_out %>%
+  tidy(matrix = "gamma") 
+
+lda_documents %>% 
+  ggplot() +
+  geom_col(aes(x = document, y = gamma, fill = factor(topic)))+
+  labs(fill = 'Topics')
+```
+
+
+5. Find a text dataset and perform text modeling on the dataset.
+
+```{r, warning=FALSE}
+library(tidyverse)
+library(tidytext)
+library(tm)
+library(wordcloud)
+
+#CNN news highlights text
+df <- read_csv("~/Applied Analystics SAS Prog/mymath475/CNNtext.csv")
+
+#Create doc- term matrix (DTM)
+# create the DTM
+df_tm <- df %>% 
+  unnest_tokens(output = word, input = highlights) %>% 
+  anti_join(get_stopwords()) %>% 
+  anti_join(tibble(word = c(letters, LETTERS, "oh", 'just', 've', as.character(c(1:100)))))
+
+word_freq <- df_tm %>% 
+  group_by(id) %>% count(word, sort = TRUE)
+
+df_dtm <- word_freq %>% 
+  cast_dtm(document = id, term = word, n)
+
+tm::inspect(df_dtm)
+
+#Topic Modeling
+library(topicmodels)
+
+# Perform Topic Modeling
+
+n_topics = 5  # set the number of topics
+
+lda_out <-
+  LDA(df_dtm, k = n_topics, method = 'Gibbs', 
+      control = list(seed = 1111))
+
+#Present results
+lda_topics <- lda_out %>%
+  tidy(matrix = "beta") 
+
+word_probs <- lda_topics %>%
+  group_by(topic) %>%
+  slice_max(order_by = beta, n = 10) %>%
+  ungroup() %>%
+  mutate(term = fct_reorder(term, beta))
+
+# bar chart
+word_probs %>% 
+  ggplot(aes(beta, term, fill = topic)) +
+  geom_col(show.legend = FALSE) +
+  facet_wrap(~ as.factor(topic), scales = "free") +
+  labs(x = "Probability",
+       y = NULL)+
+  scale_y_reordered() 
+
+# word cloud
+ library(wordcloud) 
+pal <- brewer.pal(8,"Dark2")
+
+for (i in c(1:n_topics))
+{
+  topic <- lda_topics %>%
+  group_by(topic) %>% 
+  filter(topic==i)
+
+topic %>%
+  with(wordcloud(term, beta, random.order = FALSE, 
+                 max.words = 50, colors=pal))
+}
+
+# topic distribution for each documents
+lda_documents = lda_out %>%
+  tidy(matrix = "gamma") 
+
+lda_documents %>% 
+  ggplot() +
+  geom_col(aes(x = document, y = gamma, fill = factor(topic)))+
+  labs(fill = 'Topics')
+```
+

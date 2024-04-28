@@ -1,0 +1,137 @@
+---
+title: "Assignment 11"
+author: "Allison Tessman"
+date: "2024-03-29"
+output:
+  pdf_document: default
+  html_document: default
+---
+
+## Question 1. Working with a text dataset containing quotes from the TV Show Friends. Do the following:
+
+1. Plot the word frequency of the text data
+
+```{r, warning=FALSE}
+library(tidyverse)
+library(tidytext)
+
+#Create list of tokens
+df = read_csv('https://bryantstats.github.io/math475/assignments/friends_quotes.csv')
+df = df %>% 
+  select(quote) %>% 
+  rename(text = quote)
+
+stop_word2 = tibble(word = c(letters, LETTERS, "oh", 'just'))
+
+# list of tokens/words
+df %>%
+  unnest_tokens(input = text, output = word) %>% 
+  anti_join(get_stopwords()) %>% 
+  anti_join(stop_word2)
+
+# Count token frequency
+df %>%
+  unnest_tokens(input = text, output = word) %>% 
+  anti_join(get_stopwords()) %>% 
+  anti_join(stop_word2)%>% 
+  count(word, sort = TRUE)
+
+# Plot token frequency
+df %>%
+  unnest_tokens(input = text, output = word) %>% 
+  anti_join(get_stopwords()) %>% 
+  anti_join(stop_word2)%>% 
+  count(word, sort = TRUE)%>% 
+  head(10) %>% 
+  ggplot(aes(x = n, y = reorder(word, n))) +
+  geom_col() +
+  labs(y = '', x = 'Frequency')
+```
+
+2. Plot a word cloud of the text data
+
+```{r, warning=FALSE}
+# Plot word cloud
+library(wordcloud) 
+
+df %>%
+  unnest_tokens(input = text, output = word) %>% 
+  anti_join(get_stopwords()) %>% 
+  anti_join(stop_word2)%>% 
+  count(word, sort = TRUE)%>% 
+  with(wordcloud(word, n, random.order = FALSE, 
+                 max.words = 50, colors=brewer.pal(8,"Dark2")))
+```
+
+3. Run a sentiment analysis on the data
+
+```{r, warning=FALSE}
+# Sentiment Analysis Using nrc Lexicon
+
+df %>%
+  unnest_tokens(input = text, output = word) %>% 
+  anti_join(get_stopwords()) %>% 
+  anti_join(stop_word2) %>% 
+  inner_join(get_sentiments("nrc")) %>% 
+  filter(!is.na(sentiment)) %>%
+  count(sentiment, sort = TRUE) %>% 
+  ggplot(aes(sentiment, n))+geom_col()+
+  labs(y='Relative Frequency', x ='')
+```
+
+## Question 2. Do Question 1 on your own text dataset.
+
+```{r, warning=FALSE}
+#CNN News Text
+
+# Create list of tokens
+library(tidyverse)
+library(tidytext)
+df = read_csv('~/Applied Analystics SAS Prog/mymath475/CNNtext.csv')
+df = df %>% 
+  select(highlights) %>% 
+  rename(text = highlights)
+
+# list of tokens/words
+df %>%
+  unnest_tokens(input = text, output = word) %>% 
+  anti_join(get_stopwords())
+
+# Count word frequency
+df %>%
+  unnest_tokens(input = text, output = word) %>% 
+  anti_join(get_stopwords()) %>%
+  count(word, sort = TRUE)
+
+# Plot word frequency
+df %>%
+  unnest_tokens(input = text, output = word) %>% 
+  anti_join(get_stopwords()) %>% 
+  count(word, sort = TRUE)%>% 
+  head(10) %>% 
+  ggplot(aes(x = n, y = reorder(word, n))) +
+  geom_col() +
+  labs(y = '', x = 'Frequency')
+
+# plot word cloud
+library(wordcloud) 
+
+df %>%
+  unnest_tokens(input = text, output = word) %>% 
+  anti_join(get_stopwords()) %>% 
+  count(word, sort = TRUE)%>% 
+  with(wordcloud(word, n, random.order = FALSE, 
+                 max.words = 50, colors=brewer.pal(8,"Dark2")))
+
+# Sentiment Analysis Using nrc Lexicon
+df %>%
+  unnest_tokens(input = text, output = word) %>% 
+  anti_join(get_stopwords()) %>% 
+  inner_join(get_sentiments("nrc")) %>% 
+  filter(!is.na(sentiment)) %>%
+  count(sentiment, sort = TRUE) %>% 
+  ggplot(aes(sentiment, n))+geom_col()+
+  labs(y='Relative Frequency', x ='')
+
+```
+

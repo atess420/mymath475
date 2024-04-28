@@ -1,0 +1,334 @@
+---
+title: "Assignment 14"
+author: "Allison Tessman"
+date: "2024-04-11"
+output:
+  word_document: default
+  html_document: default
+---
+
+Question 1. Given the following text dataset. Calculate by hand for this question.
+
+- Calculate term frequency of term "animals" for each document
+
+```{r}
+knitr::include_graphics("~/Applied Analystics SAS Prog/mymath475/assignment14Table.png")
+
+#TF(term freq) = # times term t appears in a doc / total number of terms in doc
+TF1 = 0/13
+TF1
+
+TF2 = 1/13
+TF2
+
+TF3 = 0/12
+TF3
+
+TF4 = 1/9
+TF4
+```
+
+- Calculate the idf of the term animals
+
+```{r}
+#idf(t) = ln (total num of doc / num of docs with term t in it)
+
+idf = log(4/2)
+idf
+```
+
+- Calculate the tf-idk of the term animals for each document
+
+```{r}
+#tf-idf(t) = tf(t) x idf(t)
+
+tfidf1 = 0*log(4/2)
+tfidf1
+
+tfidf2 = (1/13)*log(4/2)
+tfidf2
+
+tfidf3 = 0*log(4/2)
+tfidf3
+
+tfidf4 = (1/9)*log(4/2)
+tfidf4
+```
+
+Question 2. Reproduce the results the codes in the sample codes
+
+```{r}
+library(tidyverse)
+library(ggplot2)
+library(tidytext)
+df <- read_csv("https://bryantstats.github.io/math475/assignments/amazon_reviews.csv")
+head(df)
+
+#define documents
+df %>% 
+  group_by(name) %>% 
+  count(sort = TRUE)
+
+#filter to 2 items for analysis
+df = df %>% 
+  select(name, reviews.text) %>% 
+  filter(name %in% c('Amazon Kindle Paperwhite - eBook reader - 4 GB - 6 monochrome Paperwhite - touchscreen - Wi-Fi - black,,,',   
+'All-New Fire HD 8 Tablet, 8 HD Display, Wi-Fi, 16 GB - Includes Special Offers, Magenta')) %>% 
+  rename(texts = reviews.text,
+         document = name)
+
+#plot term frequency for each doc
+stop_word2 = tibble(word = c(letters, LETTERS, "oh", 'just'))
+
+df_words = df %>% 
+  unnest_tokens(input = texts, output = word) %>% 
+  count(document, word, sort = TRUE) %>% 
+  anti_join(get_stopwords()) %>% 
+  anti_join(stop_word2)
+
+total_words <- df_words %>% 
+  group_by(document) %>% 
+  summarize(total = sum(n))
+
+df_words <- left_join(df_words, total_words)
+
+df_tf = df_words %>% 
+  group_by(document) %>% 
+  mutate(tf = n/total)
+
+df_tf %>% 
+  group_by(document) %>% 
+  slice_max(tf, n = 5) %>% 
+  ungroup() %>%
+  ggplot(aes(tf, fct_reorder(word, tf), fill = document)) +
+  geom_col(show.legend = FALSE) +
+  facet_wrap(~document, ncol = 2, scales = "free") +
+  labs(x = "tf", y = NULL)
+
+#plot the tf-idf for each doc
+df_tf_idf <- df_words %>%
+  bind_tf_idf(word, document, n)
+
+df_tf_idf
+
+library(forcats)
+
+df_tf_idf %>%
+  group_by(document) %>%
+  slice_max(tf_idf, n = 15) %>%
+  ungroup() %>%
+  ggplot(aes(tf_idf, fct_reorder(word, tf_idf), fill = document)) +
+  geom_col(show.legend = FALSE) +
+  facet_wrap(~document, ncol = 2, scales = "free") +
+  labs(x = "tf-idf", y = NULL)
+
+```
+
+Question 3. Redo the sample codes with different selections of documents
+
+```{r}
+library(tidyverse)
+library(ggplot2)
+library(tidytext)
+df <- read_csv("https://bryantstats.github.io/math475/assignments/amazon_reviews.csv")
+head(df)
+
+#define documents
+df %>% 
+  group_by(name) %>% 
+  count(sort = TRUE)
+
+#filter to 2 items for analysis
+df = df %>% 
+  select(name, reviews.text) %>% 
+  filter(name %in% c('Fire Kids Edition Tablet, 7 Display, Wi-Fi, 16 GB, Green Kid-Proof Case',   
+'Brand New Amazon Kindle Fire 16gb 7 Ips Display Tablet Wifi 16 Gb Blue,,,')) %>% 
+  rename(texts = reviews.text,
+         document = name)
+
+#plot term frequency for each doc
+stop_word2 = tibble(word = c(letters, LETTERS, "oh", 'just'))
+
+df_words = df %>% 
+  unnest_tokens(input = texts, output = word) %>% 
+  count(document, word, sort = TRUE) %>% 
+  anti_join(get_stopwords()) %>% 
+  anti_join(stop_word2)
+
+total_words <- df_words %>% 
+  group_by(document) %>% 
+  summarize(total = sum(n))
+
+df_words <- left_join(df_words, total_words)
+
+df_tf = df_words %>% 
+  group_by(document) %>% 
+  mutate(tf = n/total)
+
+df_tf %>% 
+  group_by(document) %>% 
+  slice_max(tf, n = 5) %>% 
+  ungroup() %>%
+  ggplot(aes(tf, fct_reorder(word, tf), fill = document)) +
+  geom_col(show.legend = FALSE) +
+  facet_wrap(~document, ncol = 2, scales = "free") +
+  labs(x = "tf", y = NULL)
+
+#plot the tf-idf for each doc
+df_tf_idf <- df_words %>%
+  bind_tf_idf(word, document, n)
+
+df_tf_idf
+
+library(forcats)
+
+df_tf_idf %>%
+  group_by(document) %>%
+  slice_max(tf_idf, n = 15) %>%
+  ungroup() %>%
+  ggplot(aes(tf_idf, fct_reorder(word, tf_idf), fill = document)) +
+  geom_col(show.legend = FALSE) +
+  facet_wrap(~document, ncol = 2, scales = "free") +
+  labs(x = "tf-idf", y = NULL)
+```
+
+Question 4. Do the follows:
+
+- Define your own documents for the analysis.
+- Plot the term frequency in the documents
+- Plot the tf-idf in the documents.
+
+```{r}
+#dataset
+library(tidyverse)
+library(ggplot2)
+library(tidytext)
+df <- read_csv("https://bryantstats.github.io/math475/assignments/netflix_titles.csv")
+head(df)
+
+#define documents
+df %>% 
+  group_by(title) %>% 
+  count(sort = TRUE)
+
+df = df %>% 
+  select(title, description) %>% 
+  filter(title %in% c('Bert Kreischer: Hey Big Boy',   
+'Bert Kreischer: The Machine')) %>% 
+  rename(texts = description,
+         document = title)
+
+#plot term frequency
+stop_word2 = tibble(word = c(letters, LETTERS, "oh", 'just'))
+
+df_words = df %>% 
+  unnest_tokens(input = texts, output = word) %>% 
+  count(document, word, sort = TRUE) %>% 
+  anti_join(get_stopwords()) %>% 
+  anti_join(stop_word2)
+
+total_words <- df_words %>% 
+  group_by(document) %>% 
+  summarize(total = sum(n))
+
+df_words <- left_join(df_words, total_words)
+
+df_tf = df_words %>% 
+  group_by(document) %>% 
+  mutate(tf = n/total)
+
+df_tf %>% 
+  group_by(document) %>% 
+  slice_max(tf, n = 5) %>% 
+  ungroup() %>%
+  ggplot(aes(tf, fct_reorder(word, tf), fill = document)) +
+  geom_col(show.legend = FALSE) +
+  facet_wrap(~document, ncol = 2, scales = "free") +
+  labs(x = "tf", y = NULL)
+
+#plot tf-idf for each doc
+df_tf_idf <- df_words %>%
+  bind_tf_idf(word, document, n)
+
+df_tf_idf
+
+library(forcats)
+
+df_tf_idf %>%
+  group_by(document) %>%
+  slice_max(tf_idf, n = 15) %>%
+  ungroup() %>%
+  ggplot(aes(tf_idf, fct_reorder(word, tf_idf), fill = document)) +
+  geom_col(show.legend = FALSE) +
+  facet_wrap(~document, ncol = 2, scales = "free") +
+  labs(x = "tf-idf", y = NULL)
+```
+
+Question 5. Redo Question 4 on your own dataset.
+
+```{r}
+#dataset
+library(tidyverse)
+library(ggplot2)
+library(tidytext)
+df <- read_csv("~/Applied Analystics SAS Prog/mymath475/CNNtext.csv")
+head(df)
+
+#define documents
+df %>% 
+  group_by(id) %>% 
+  count(sort = TRUE)
+
+df = df %>% 
+  select(id, highlights) %>% 
+  filter(id %in% c('00217448b38d81a23db66ac362bee25056f58fab',   
+'000571afe702684d90c1d222ce70b1e1375c1016')) %>% 
+  rename(texts = highlights,
+         document = id)
+
+#plot term frequency
+stop_word2 = tibble(word = c(letters, LETTERS, "oh", 'just'))
+
+df_words = df %>% 
+  unnest_tokens(input = texts, output = word) %>% 
+  count(document, word, sort = TRUE) %>% 
+  anti_join(get_stopwords()) %>% 
+  anti_join(stop_word2)
+
+total_words <- df_words %>% 
+  group_by(document) %>% 
+  summarize(total = sum(n))
+
+df_words <- left_join(df_words, total_words)
+
+df_tf = df_words %>% 
+  group_by(document) %>% 
+  mutate(tf = n/total)
+
+df_tf %>% 
+  group_by(document) %>% 
+  slice_max(tf, n = 5) %>% 
+  ungroup() %>%
+  ggplot(aes(tf, fct_reorder(word, tf), fill = document)) +
+  geom_col(show.legend = FALSE) +
+  facet_wrap(~document, ncol = 2, scales = "free") +
+  labs(x = "tf", y = NULL)
+
+#plot tf-idf for each doc
+df_tf_idf <- df_words %>%
+  bind_tf_idf(word, document, n)
+
+df_tf_idf
+
+library(forcats)
+
+df_tf_idf %>%
+  group_by(document) %>%
+  slice_max(tf_idf, n = 15) %>%
+  ungroup() %>%
+  ggplot(aes(tf_idf, fct_reorder(word, tf_idf), fill = document)) +
+  geom_col(show.legend = FALSE) +
+  facet_wrap(~document, ncol = 2, scales = "free") +
+  labs(x = "tf-idf", y = NULL)
+```
+

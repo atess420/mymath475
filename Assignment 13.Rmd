@@ -1,0 +1,183 @@
+---
+title: "Assignment 13"
+author: "Allison Tessman"
+date: "2024-04-09"
+output:
+  word_document: default
+  html_document: default
+---
+
+Question 1. Working with a text dataset containing Amazon reviews for an iPhone model. Do the following:
+
+- Create a list of all possible pairs of words (not only adjacent words) that do not contain stopwords and plot the most frequent pairs.
+
+```{r}
+library(tidyverse)
+library(ggplot2)
+library(tidytext)
+df <- read_csv("https://bryantstats.github.io/math475/assignments/Amazon_Unlocked_Mobile2.csv")
+
+df %>% 
+  group_by(Product_Name) %>% 
+  count(sort = TRUE)
+
+df_section_words = df %>% 
+  mutate(section = c(1:nrow(df))) %>% 
+  unnest_tokens(output = word, input = texts) %>% 
+  filter(!word %in% stop_words$word)
+           
+
+library(widyr)
+
+# count words co-occuring within sections
+word_pairs <- df_section_words %>%
+  pairwise_count(word, section, sort = TRUE)
+
+word_pairs
+
+word_pairs %>% 
+  head(20) %>% 
+  mutate(item = paste0(item1, " ", item2)) %>% 
+  ggplot() + 
+  geom_col(aes(y = fct_rev(fct_reorder(item, -n)), x = n))+
+  labs(y = "", x = 'Frequency')
+```
+
+- Plot the graph of the pairs of words
+
+```{r}
+library(igraph)
+pairs_graph <- word_pairs %>%
+  filter(n > 50) %>%
+  graph_from_data_frame()
+
+library(ggraph)
+set.seed(2024)
+
+a <- grid::arrow(type = "closed", length = unit(.15, "inches"))
+
+ggraph(pairs_graph, layout = "fr") +
+  geom_edge_link(aes(edge_alpha = n), show.legend = FALSE,
+                 arrow = a, end_cap = circle(.07, 'inches')) +
+  geom_node_point(color = "lightblue", size = 5) +
+  geom_node_text(aes(label = name), vjust = 1, hjust = 1) +
+  theme_void()
+
+```
+
+- Compute the correlations of all the pairs and plot the bar chart of the pairs with the highest correlation
+
+```{r}
+word_cors <- df_section_words %>%
+  group_by(word) %>%
+  filter(n() >= 20) %>%
+  pairwise_cor(item = word, feature = section, sort = TRUE)
+
+word_cors
+
+word_cors %>% 
+  head(20) %>% 
+  mutate(item = paste0(item1, " ", item2)) %>% 
+  ggplot()+
+  geom_col(aes(y = fct_rev(fct_reorder(item, -correlation)), x = correlation))+
+  labs(y ='')
+
+```
+
+- Plot the graph of the correlation
+
+```{r}
+library(ggraph)
+library(igraph)
+set.seed(2024)
+
+word_cors %>%
+  filter(correlation > .3) %>%
+  graph_from_data_frame() %>%
+  ggraph(layout = "fr") +
+  geom_edge_link(aes(edge_alpha = correlation), show.legend = FALSE) +
+  geom_node_point(color = "lightblue", size = 5) +
+  geom_node_text(aes(label = name), repel = TRUE) +
+  theme_void()
+```
+
+
+Question 2. Do Question 1 on your own text dataset.
+
+```{r}
+library(tidyverse)
+library(ggplot2)
+library(tidytext)
+
+df <- read_csv('~/Applied Analystics SAS Prog/mymath475/CNNtext.csv')
+
+df %>% 
+  group_by(id) %>% 
+  count(sort = TRUE)
+
+df_section_words = df %>% 
+  mutate(section = c(1:nrow(df))) %>% 
+  unnest_tokens(output = word, input = highlights) %>% 
+  filter(!word %in% stop_words$word)
+           
+
+library(widyr)
+
+# count words co-occuring within sections
+word_pairs <- df_section_words %>%
+  pairwise_count(word, section, sort = TRUE)
+
+word_pairs
+
+word_pairs %>% 
+  head(20) %>% 
+  mutate(item = paste0(item1, " ", item2)) %>% 
+  ggplot() + 
+  geom_col(aes(y = fct_rev(fct_reorder(item, -n)), x = n))+
+  labs(y = "", x = 'Frequency')
+
+library(igraph)
+pairs_graph <- word_pairs %>%
+  filter(n > 150) %>%
+  graph_from_data_frame()
+
+library(ggraph)
+set.seed(2024)
+
+a <- grid::arrow(type = "closed", length = unit(.15, "inches"))
+
+ggraph(pairs_graph, layout = "fr") +
+  geom_edge_link(aes(edge_alpha = n), show.legend = FALSE,
+                 arrow = a, end_cap = circle(.07, 'inches')) +
+  geom_node_point(color = "lightblue", size = 5) +
+  geom_node_text(aes(label = name), vjust = 1, hjust = 1) +
+  theme_void()
+
+word_cors <- df_section_words %>%
+  group_by(word) %>%
+  filter(n() >= 20) %>%
+  pairwise_cor(item = word, feature = section, sort = TRUE)
+
+word_cors
+
+word_cors %>% 
+  head(20) %>% 
+  mutate(item = paste0(item1, " ", item2)) %>% 
+  ggplot()+
+  geom_col(aes(y = fct_rev(fct_reorder(item, -correlation)), x = correlation))+
+  labs(y ='')
+
+library(ggraph)
+library(igraph)
+set.seed(2024)
+
+word_cors %>%
+  filter(correlation > .75) %>%
+  graph_from_data_frame() %>%
+  ggraph(layout = "fr") +
+  geom_edge_link(aes(edge_alpha = correlation), show.legend = FALSE) +
+  geom_node_point(color = "lightblue", size = 5) +
+  geom_node_text(aes(label = name), repel = TRUE) +
+  theme_void()
+```
+
