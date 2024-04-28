@@ -1,0 +1,622 @@
+---
+title: "Final Project"
+author: "Allison Tessman"
+date: "2024-04-26"
+output: html_document
+---
+
+Subset the data:
+
+1. Bigrams Analysis (Assignment 12)
+
+Do the following:
+
+- Create a list of pairs of words that may contain stopwords and plot the most frequent pairs.
+
+- Create a list of pairs of words that do not contain stopwords and plot the most frequent pairs.
+
+- Visualize the pairs of words (bigrams)
+
+- Plot the context sentiment analysis
+
+```{r, warning=FALSE}
+library(tidyverse)
+
+df <- read_csv("~/Applied Analystics SAS Prog/mymath475/final_complaints.csv")
+
+# subset the first 500 rows of the data
+df = df[c(1:500),]  
+
+# OR
+
+# a random sample of 500 rows from the data
+#df = df[sample(nrow(df), 500),]  
+
+# only look at sub product with most reviews
+library(tidyverse)
+library(ggplot2)
+library(tidytext)
+library(tm)
+
+df %>% 
+  group_by(`Sub-issue`) %>% 
+  count(sort = TRUE)
+
+# filter out to only include credit reporting (#1 complaints)
+df = df %>% 
+  select(`Sub-issue`, `Consumer complaint narrative`) %>% 
+  filter(`Sub-issue`=='Information belongs to someone else') %>% 
+  rename(texts = `Consumer complaint narrative`)
+
+# create a list of pairs of words
+df_bigrams <- df %>%
+  unnest_tokens(input = texts, output = bigram, token = "ngrams", n = 2) %>% 
+  filter(!is.na(bigram))
+
+df_bigrams %>%
+  count(bigram, sort = TRUE)
+
+# top most frequent pairs
+df_bigrams %>%
+  count(bigram, sort = TRUE) %>% 
+  head(10) %>% 
+  ggplot(aes(x = n, y = reorder(bigram, n))) +
+  geom_col() +
+  labs(y = '', x = 'Frequency')
+
+# remove stop words
+bigrams_separated <- df_bigrams %>%
+    separate(bigram, c("word1", "word2"), sep = " ")
+
+stop_word2 = tibble(word = c(letters, LETTERS, "oh", 'just', 'xxxx', 'xx'))
+
+bigrams_filtered <- bigrams_separated %>%
+    filter(!word1 %in% stop_words$word) %>%
+    filter(!word1 %in% stop_words$word) %>%
+    filter(!word1 %in% stop_word2$word) %>%
+    filter(!word2 %in% stop_word2$word)
+
+# new bigram counts:
+bigram_counts <- bigrams_filtered %>% 
+    count(word1, word2, sort = TRUE)
+bigram_counts
+
+# top most frequent pairs
+bigram_counts$pairs = paste0(bigram_counts$word1, " ", bigram_counts$word2)
+
+bigram_counts %>% 
+  head(10) %>% 
+  ggplot(aes(x = n, y = reorder(pairs, n))) +
+  geom_col() +
+  labs(y = '', x = 'Frequency')
+
+# visualize the bigrams
+library(igraph)
+bigram_graph <- bigram_counts %>%
+  filter(n > 20) %>%
+  graph_from_data_frame()
+
+library(ggraph)
+set.seed(2024)
+
+a <- grid::arrow(type = "closed", length = unit(.15, "inches"))
+
+ggraph(bigram_graph, layout = "fr") +
+  geom_edge_link(aes(edge_alpha = n), show.legend = FALSE,
+                 arrow = a, end_cap = circle(.07, 'inches')) +
+  geom_node_point(color = "lightblue", size = 5) +
+  geom_node_text(aes(label = name), vjust = 1, hjust = 1) +
+  theme_void()
+
+# create a wordcloud
+## create a wordcloud
+library(wordcloud) 
+bigram_counts %>% 
+  with(wordcloud(pairs, n, random.order = FALSE, 
+                 max.words = 40, 
+                 colors=brewer.pal(8,"Dark2")))
+
+# *********************************************
+
+# Trigrams
+df_trigrams <- df %>%
+  unnest_tokens(input = texts, output = trigram, token = "ngrams", n = 3) %>% 
+  filter(!is.na(word))
+
+df_separated <- df_trigrams %>%
+    separate(trigram, c("word1", "word2", "word3"), sep = " ")
+
+stop_word3 = tibble(word = c(letters, LETTERS, "oh", 'just', 'xxxx', 'xx'))
+
+df_filtered <- df_separated %>%
+    filter(!word1 %in% stop_words$word) %>%
+    filter(!word2 %in% stop_words$word) %>%
+    filter(!word3 %in% stop_words$word) %>%
+    filter(!word1 %in% stop_word3$word) %>%
+    filter(!word2 %in% stop_word3$word) %>% 
+    filter(!word3 %in% stop_word3$word)
+
+trigram_count <- df_filtered %>% 
+  count(word1, word2, word3, sort = TRUE) %>% 
+  unite(word, word1, word2, word3, sep = " ")
+
+## plot the frequency
+trigram_count %>% 
+  filter(n > 15) %>% 
+  mutate(word = reorder(word, n)) %>% 
+  ggplot(aes(word, n)) + 
+  geom_col() + 
+  xlab(NULL) + 
+  coord_flip()
+
+# wordcloud
+trigram_count %>% 
+  with(wordcloud(word, n, random.order = FALSE, 
+                 max.words = 50, colors=brewer.pal(8,"Dark2")))
+
+# ***********************************************
+
+# Content Sentiment Analysis
+
+# words preceded by NOT
+bigrams_separated %>%
+  filter(word1 == "not") %>%
+  count(word1, word2, sort = TRUE)
+
+AFINN <- get_sentiments("afinn")
+
+not_words <- bigrams_separated %>%
+  filter(word1 == "not") %>%
+  inner_join(AFINN, by = c(word2 = "word")) %>%
+  count(word2, value, sort = TRUE)
+
+not_words
+
+# plot sentiment analysis
+# NOTE: use of word NOT can cause reversed sentiment and is issue
+library(ggplot2)
+
+not_words %>%
+  mutate(contribution = n * value) %>%
+  arrange(desc(abs(contribution))) %>%
+  head(20) %>%
+  mutate(word2 = reorder(word2, contribution)) %>%
+  ggplot(aes(n * value, word2, fill = n * value > 0)) +
+  geom_col(show.legend = FALSE) +
+  labs(x = "Sentiment value * number of occurrences. These sentiment should be reversed",
+       y = "Words preceded by \"not\"")
+
+# identify words that connect with not, no, never, without
+# then reverse the sentiment values of these words
+stop_word2 = tibble(word = c(letters, LETTERS, "oh", 'just', 'xx', 'xxxx'))
+AFINN <- get_sentiments("afinn")
+
+sentiment1 = df %>%
+  unnest_tokens(input = texts, output = word) %>% 
+  anti_join(get_stopwords()) %>% 
+  anti_join(stop_word2) %>% 
+  inner_join(get_sentiments("afinn")) %>% 
+  filter(!is.na(value)) %>% 
+  count(value)
+
+sentiment1 %>% 
+  ggplot(aes(x = value, y = n))+
+  geom_col()+  
+  labs(title = 'Non-context Sentiment Analysis')
+
+negation_words <- c("not", "no", "never", "without")
+
+sentiment2 = bigrams_separated %>%
+  filter(word1 %in% negation_words) %>%
+  inner_join(AFINN, by = c(word2 = "word")) %>%
+  count(word1, word2, value, sort = TRUE) %>% 
+  select(value, n) %>% 
+  group_by(value) %>% 
+  summarise(n = sum(n)) %>% 
+  arrange(value)
+
+ggplot()+
+  geom_col(data = sentiment1, aes(x =value, y = n))+
+  geom_col(data = sentiment2, aes(x =value, y = n), fill = 'red')+
+  labs(title = 'Context Sentiment Analysis',
+       caption = "Red bars present the reversed sentiment.")
+# Red bars present the reversed sentiment!
+
+```
+
+
+2. Word Pair and Correlation Analysis (Assignment 13)
+
+Do the following:
+
+- Create a list of all possible pairs of words (not only adjacent words) that do not contain stopwords and plot the most frequent pairs.
+
+- Plot the graph of the pairs of words
+
+- Compute the correlations of all the pairs and plot the bar chart of the pairs with the highest correlation
+
+- Plot the graph of the correlation
+
+```{r, warning=FALSE}
+library(tidyverse)
+
+df <- read_csv("~/Applied Analystics SAS Prog/mymath475/final_complaints.csv")
+
+# subset the first 500 rows of the data
+df = df[c(1:500),]  
+
+# OR
+
+# a random sample of 500 rows from the data
+#df = df[sample(nrow(df), 500),]  
+
+
+# Find item with most reviews
+df %>% 
+  group_by(`Sub-issue`) %>% 
+  count(sort = TRUE)
+
+# filter out to only include credit reporting (#1 complaints)
+df = df %>% 
+  select(`Sub-issue`, `Consumer complaint narrative`) %>% 
+  filter(`Sub-issue`=='Information belongs to someone else') %>% 
+  rename(texts = `Consumer complaint narrative`)
+
+# pairs of words
+stop_word2 = tibble(word = c(letters, LETTERS, "oh", 'just', 'xxxx', 'xx'))
+
+df_section_words = df %>% 
+  mutate(section = c(1:nrow(df))) %>% 
+  unnest_tokens(output = word, input = texts) %>% 
+  filter(!word %in% stop_words$word) %>% 
+  filter(!word %in% stop_word2$word)
+
+library(widyr)
+
+# count words co-occuring within sections
+word_pairs <- df_section_words %>%
+  pairwise_count(word, section, sort = TRUE)
+
+word_pairs
+
+# top most frequent pairs
+word_pairs %>% 
+  head(20) %>% 
+  mutate(item = paste0(item1, " ", item2)) %>% 
+  ggplot() + 
+  geom_col(aes(y = fct_rev(fct_reorder(item, -n)), x = n))+
+  labs(y = "", x = 'Frequency')
+
+# graph of word pairs
+library(igraph)
+pairs_graph <- word_pairs %>%
+  filter(n > 40) %>%
+  graph_from_data_frame()
+
+library(ggraph)
+set.seed(2024)
+
+a <- grid::arrow(type = "closed", length = unit(.15, "inches"))
+
+ggraph(pairs_graph, layout = "fr") +
+  geom_edge_link(aes(edge_alpha = n), show.legend = FALSE,
+                 arrow = a, end_cap = circle(.07, 'inches')) +
+  geom_node_point(color = "lightblue", size = 5) +
+  geom_node_text(aes(label = name), vjust = 1, hjust = 1) +
+  theme_void()
+
+# ********************************************
+
+# Pairwise Correlation
+
+# top correlated pairs
+word_cors <- df_section_words %>%
+  group_by(word) %>%
+  filter(n() >= 20) %>%
+  pairwise_cor(item = word, feature = section, sort = TRUE)
+
+word_cors
+
+word_cors %>% 
+  head(20) %>% 
+  mutate(item = paste0(item1, " ", item2)) %>% 
+  ggplot()+
+  geom_col(aes(y = fct_rev(fct_reorder(item, -correlation)), x = correlation))+
+  labs(y ='')
+
+# graph of the correlations
+library(ggraph)
+library(igraph)
+set.seed(2024)
+
+word_cors %>%
+  filter(correlation > .65) %>%
+  graph_from_data_frame() %>%
+  ggraph(layout = "fr") +
+  geom_edge_link(aes(edge_alpha = correlation), show.legend = FALSE) +
+  geom_node_point(color = "lightblue", size = 5) +
+  geom_node_text(aes(label = name), repel = TRUE) +
+  theme_void()
+
+```
+
+
+3. tf-idf plots (Assignment 14)
+
+Do the following:
+
+- Define your own documents for the analysis.
+
+- Plot the term frequency in the documents
+
+- Plot the tf-idf in the documents.
+
+```{r, warning=FALSE}
+library(tidyverse)
+
+df <- read_csv("~/Applied Analystics SAS Prog/mymath475/final_complaints.csv")
+
+# subset the first 500 rows of the data
+df = df[c(1:500),]  
+
+# OR
+
+# a random sample of 500 rows from the data
+#df = df[sample(nrow(df), 500),] 
+
+# define documents
+df %>% 
+  group_by(`Sub-issue`) %>% 
+  count(sort = TRUE)
+
+# filter out data set for 2 items to analyze
+df = df %>% 
+  select(`Sub-issue`, `Consumer complaint narrative`) %>% 
+  filter(`Sub-issue` %in% c('Information belongs to someone else', 'Reporting company used your report improperly')) %>% 
+  rename(texts = `Consumer complaint narrative`, 
+         document = `Sub-issue`)
+
+# plot the term freqency for each document
+stop_word2 = tibble(word = c(letters, LETTERS, "oh", 'just', 'xx', 'xxxx'))
+
+df_words = df %>% 
+  unnest_tokens(input = texts, output = word) %>% 
+  count(document, word, sort = TRUE) %>% 
+  anti_join(get_stopwords()) %>% 
+  anti_join(stop_word2)
+
+total_words <- df_words %>% 
+  group_by(document) %>% 
+  summarize(total = sum(n))
+
+df_words <- left_join(df_words, total_words)
+
+df_tf = df_words %>% 
+  group_by(document) %>% 
+  mutate(tf = n/total)
+
+df_tf %>% 
+  group_by(document) %>% 
+  slice_max(tf, n = 5) %>% 
+  ungroup() %>%
+  ggplot(aes(tf, fct_reorder(word, tf), fill = document)) +
+  geom_col(show.legend = FALSE) +
+  facet_wrap(~document, ncol = 2, scales = "free") +
+  labs(x = "tf", y = NULL)
+
+# plot the tf-idf for each doc
+df_tf_idf <- df_words %>%
+  bind_tf_idf(word, document, n)
+
+df_tf_idf
+
+library(forcats)
+
+df_tf_idf %>%
+  group_by(document) %>%
+  slice_max(tf_idf, n = 15) %>%
+  ungroup() %>%
+  ggplot(aes(tf_idf, fct_reorder(word, tf_idf), fill = document)) +
+  geom_col(show.legend = FALSE) +
+  facet_wrap(~document, ncol = 2, scales = "free") +
+  labs(x = "tf-idf", y = NULL)
+
+```
+
+
+4. Text Clustering (Assignment 15)
+
+Do the following:
+
+- Print out a sample of the Document Term Matrix using term frequency
+
+- Print out a sample of the Document Term Matrix using tf-idf
+
+- Cluster the words in the dataset using k-means.
+
+- Plot the words frequency of the words in each clusters
+
+- Plot the frequency of the part of speech of all the words in the dataset.
+
+```{r, warning=FALSE}
+# document term matrix- term frequency
+library(tidytext)
+library(tm)
+library(wordcloud)
+library(tidyverse)
+
+df <- read_csv("~/Applied Analystics SAS Prog/mymath475/final_complaints.csv")
+
+# subset the first 500 rows of the data
+df = df[c(1:500),]  
+
+# OR
+
+# a random sample of 500 rows from the data
+#df = df[sample(nrow(df), 500),] 
+
+df = df %>% 
+  select(`Sub-issue`, `Consumer complaint narrative`) %>%
+  rename(texts = `Consumer complaint narrative`, 
+         document = `Sub-issue`)
+
+# create the DTM
+df_tm <- df %>% 
+  unnest_tokens(output = word, input = texts) %>% 
+  anti_join(get_stopwords()) %>% 
+  anti_join(tibble(word = c(letters, LETTERS, "oh", 'just', 'xx', 'xxxx',  as.character(c(1:100)))))
+
+word_freq <- df_tm %>% 
+  group_by(document) %>% count(word, sort = TRUE)
+
+df_dtm <- word_freq %>% 
+  cast_dtm(document = document, term = word, n)
+
+tm::inspect(df_dtm)
+
+# DTM- tf-idf
+df_dtm <- weightTfIdf(df_dtm)
+
+tm::inspect(df_dtm)
+
+# *****************************************
+
+# Clustering
+
+# transpose data so terms are rows of data
+# df_dtm <- removeSparseTerms(df_dtm, 0.5)
+kmeans.data <- as.matrix(t(df_dtm))
+
+kfit <- kmeans(kmeans.data, 3)
+
+# plot word cloud
+df %>%
+  unnest_tokens(input = texts, output = word) %>% 
+  anti_join(get_stopwords()) %>% 
+  anti_join(tibble(word = c(letters, LETTERS, "oh", 'just', 'xx', 'xxxx',  as.character(c(1:100))))) %>% 
+  count(word, sort = TRUE) %>% 
+  with(wordcloud(word, n, random.order = FALSE, 
+                 max.words = 50, colors=brewer.pal(8,"Dark2")))
+
+# plot cluster 1
+k = 1
+
+cluster = names(kfit$cluster)[kfit$cluster==k]
+cluster = as_tibble(cluster) %>% 
+  rename(word = value)
+
+cluster = word_freq <- df_tm %>% 
+  count(word, sort = TRUE) %>% 
+  inner_join(cluster, by = 'word')
+
+library(wordcloud)
+set.seed(2024)
+cluster %>% with(wordcloud(word, n, max.words = 50, random.order = FALSE, rot.per = 0.35, 
+    colors = brewer.pal(8, "Dark2")))
+
+# plot cluster 2
+k = 2
+
+cluster = names(kfit$cluster)[kfit$cluster==k]
+cluster = as_tibble(cluster) %>% 
+  rename(word = value)
+
+cluster = word_freq <- df_tm %>% 
+  count(word, sort = TRUE) %>% 
+  inner_join(cluster, by = 'word')
+
+library(wordcloud)
+set.seed(2024)
+cluster %>% with(wordcloud(word, n, max.words = 50, random.order = FALSE, rot.per = 0.35, 
+    colors = brewer.pal(8, "Dark2")))
+
+# plot cluster 3
+k = 3
+
+cluster = names(kfit$cluster)[kfit$cluster==k]
+cluster = as_tibble(cluster) %>% 
+  rename(word = value)
+
+cluster = word_freq <- df_tm %>% 
+  count(word, sort = TRUE) %>% 
+  inner_join(cluster, by = 'word')
+
+library(wordcloud)
+set.seed(2024)
+cluster %>% with(wordcloud(word, n, max.words = 50, random.order = FALSE, rot.per = 0.35, 
+    colors = brewer.pal(8, "Dark2")))
+
+# *******************************************
+
+# Part of Speech
+
+# map words into its part of speech (noun, ver, etc.)
+library(tidyverse)
+library(tidytext)
+library(tm)
+library(wordcloud)
+
+df <- read_csv("~/Applied Analystics SAS Prog/mymath475/final_complaints.csv")
+
+# subset the first 500 rows of the data
+df = df[c(1:500),]  
+
+# OR
+
+# a random sample of 500 rows from the data
+#df = df[sample(nrow(df), 500),] 
+
+df = df %>% 
+  select(`Sub-issue`, `Consumer complaint narrative`) %>%
+  rename(texts = `Consumer complaint narrative`, 
+         document = `Sub-issue`)
+
+stop_word2 = tibble(word = c(letters, LETTERS, "oh", 'just', 'xx', 'xxxx'))
+
+df %>% 
+    unnest_tokens(input = texts, output = word) %>% 
+    count(word, sort = TRUE) %>% 
+    anti_join(get_stopwords()) %>% 
+    anti_join(stop_word2) %>% 
+    inner_join(parts_of_speech) %>%                   # join POS
+    count(pos) %>%                                    # count
+    mutate(prop=n/sum(n)) %>% 
+    slice_max(prop, n = 15) %>%
+    ggplot()+geom_col(aes(y = pos, x = prop), position = 'dodge')
+
+# doc based parts of speech
+df <- read_csv("~/Applied Analystics SAS Prog/mymath475/final_complaints.csv")
+
+# subset the first 500 rows of the data
+df = df[c(1:500),]  
+
+# OR
+
+# a random sample of 500 rows from the data
+#df = df[sample(nrow(df), 500),] 
+
+df = df %>% 
+  select(`Sub-issue`, `Consumer complaint narrative`) %>%
+  rename(texts = `Consumer complaint narrative`, 
+         document = `Sub-issue`)
+
+df <- df %>% 
+  filter(grepl("Information belongs to someone else|Reporting company used your report improperly", document))
+
+stop_word2 = tibble(word = c(letters, LETTERS, "oh", 'just', 'xx', 'xxxx'))
+
+df %>% 
+    unnest_tokens(input = texts, output = word) %>% 
+    group_by(document) %>% 
+    count(document, word, sort = TRUE) %>% 
+    anti_join(get_stopwords()) %>% 
+    anti_join(stop_word2) %>% 
+    inner_join(parts_of_speech) %>%                   # join POS
+    count(pos) %>%                                    # count
+    mutate(prop=n/sum(n)) %>% 
+    slice_max(prop, n = 15) %>%
+    ggplot()+geom_col(aes(y = pos, x = prop, fill =  document), position = 'dodge')
+
+```
+
+
